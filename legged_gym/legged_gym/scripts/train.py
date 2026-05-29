@@ -40,6 +40,9 @@ import torch
 def train(args):
     env, env_cfg = task_registry.make_env(name=args.task, args=args)
     ppo_runner, train_cfg = task_registry.make_alg_runner(env=env, name=args.task, args=args)
+    if ppo_runner.logger.log_dir is not None:
+        print(f"TensorBoard log dir: {ppo_runner.logger.log_dir}")
+        print(f"View with: tensorboard --logdir {os.path.dirname(ppo_runner.logger.log_dir)} --bind_all")
     ppo_runner.learn(num_learning_iterations=train_cfg.runner.max_iterations, init_at_random_ep_len=True)
 
 if __name__ == '__main__':

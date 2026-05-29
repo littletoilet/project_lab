@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import time
 import torch
+from tqdm import tqdm
 
 from rsl_rl.algorithms import PPO
 from rsl_rl.env import VecEnv
@@ -76,7 +77,15 @@ class OnPolicyRunner:
         # Start training
         start_it = self.current_learning_iteration
         total_it = start_it + num_learning_iterations
-        for it in range(start_it, total_it):
+        progress = tqdm(
+            range(start_it, total_it),
+            total=total_it,
+            initial=start_it,
+            desc="Training",
+            dynamic_ncols=True,
+            disable=self.logger.disable_logs,
+        )
+        for it in progress:
             start = time.time()
             # Rollout
             with torch.inference_mode():
@@ -122,6 +131,7 @@ class OnPolicyRunner:
                 learning_rate=self.alg.learning_rate,
                 action_std=self.alg.get_policy().output_std,
                 rnd_weight=self.alg.rnd.weight if self.cfg["algorithm"]["rnd_cfg"] else None,
+                print_to_console=False,
             )
 
             # Save model

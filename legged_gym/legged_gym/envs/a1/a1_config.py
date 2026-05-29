@@ -83,4 +83,110 @@ class A1RoughCfgPPO( LeggedRobotCfgPPO ):
         run_name = ''
         experiment_name = 'rough_a1'
 
+
+class A1TerrainCfg( A1RoughCfg ):
+    class terrain( A1RoughCfg.terrain ):
+        terrain_proportions = [0.05, 0.10, 0.25, 0.20, 0.20, 0.10, 0.10]
+        max_init_terrain_level = 7
+
+
+class A1FrictionCfg( A1RoughCfg ):
+    class domain_rand( A1RoughCfg.domain_rand ):
+        randomize_friction = True
+        friction_range = [0.3, 1.5]
+        randomize_base_mass = False
+        push_robots = True
+
+
+class A1MassCfg( A1RoughCfg ):
+    class domain_rand( A1RoughCfg.domain_rand ):
+        randomize_friction = True
+        friction_range = [0.5, 1.25]
+        randomize_base_mass = True
+        added_mass_range = [-0.5, 1.5]
+        push_robots = True
+
+
+class A1PushCfg( A1RoughCfg ):
+    class domain_rand( A1RoughCfg.domain_rand ):
+        randomize_friction = True
+        friction_range = [0.5, 1.25]
+        randomize_base_mass = False
+        push_robots = True
+        push_interval_s = 8
+        max_push_vel_xy = 1.5
+
+
+class A1RewardSmoothCfg( A1RoughCfg ):
+    class rewards( A1RoughCfg.rewards ):
+        class scales( A1RoughCfg.rewards.scales ):
+            orientation = -0.4
+            ang_vel_xy = -0.10
+            action_rate = -0.03
+            dof_acc = -5e-7
+
+
+class A1RobustAllCfg( A1RoughCfg ):
+    class terrain( A1RoughCfg.terrain ):
+        terrain_proportions = [0.05, 0.10, 0.25, 0.20, 0.20, 0.10, 0.10]
+        max_init_terrain_level = 7
+
+    class domain_rand( A1RoughCfg.domain_rand ):
+        randomize_friction = True
+        friction_range = [0.3, 1.5]
+        randomize_base_mass = True
+        added_mass_range = [-0.5, 1.5]
+        push_robots = True
+        push_interval_s = 8
+        max_push_vel_xy = 1.5
+
+    class rewards( A1RoughCfg.rewards ):
+        class scales( A1RoughCfg.rewards.scales ):
+            orientation = -0.4
+            ang_vel_xy = -0.10
+            action_rate = -0.03
+            dof_acc = -5e-7
+
+
+class A1TerrainCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_terrain'
+        experiment_name = 'ablation_a1_terrain'
+        max_iterations = 500
+
+
+class A1FrictionCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_friction'
+        experiment_name = 'ablation_a1_friction'
+        max_iterations = 500
+
+
+class A1MassCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_mass'
+        experiment_name = 'ablation_a1_mass'
+        max_iterations = 500
+
+
+class A1PushCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_push'
+        experiment_name = 'ablation_a1_push'
+        max_iterations = 500
+
+
+class A1RewardSmoothCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_reward_smooth'
+        experiment_name = 'ablation_a1_reward_smooth'
+        max_iterations = 500
+
+
+class A1RobustAllCfgPPO( A1RoughCfgPPO ):
+    class runner( A1RoughCfgPPO.runner ):
+        run_name = 'phase2_all'
+        experiment_name = 'robust_a1_all'
+        max_iterations = 500
+
   

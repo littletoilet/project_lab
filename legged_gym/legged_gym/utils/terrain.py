@@ -107,6 +107,9 @@ class Terrain:
             self.add_terrain_to_map(terrain, i, j)
     
     def make_terrain(self, choice, difficulty):
+        if getattr(self.cfg, "complex_hard_terrain", False):
+            return self.make_complex_hard_terrain(choice, difficulty)
+
         terrain = terrain_utils.SubTerrain(   "terrain",
                                 width=self.width_per_env_pixels,
                                 length=self.width_per_env_pixels,
@@ -142,6 +145,19 @@ class Terrain:
         else:
             pit_terrain(terrain, depth=pit_depth, platform_size=4.)
         
+        return terrain
+
+    def make_complex_hard_terrain(self, choice, difficulty):
+        terrain = terrain_utils.SubTerrain(   "terrain",
+                                width=self.width_per_env_pixels,
+                                length=self.width_per_env_pixels,
+                                vertical_scale=self.cfg.vertical_scale,
+                                horizontal_scale=self.cfg.horizontal_scale)
+        blocky_hard_terrain(
+            terrain,
+            choice=choice,
+            difficulty=difficulty,
+        )
         return terrain
 
     def add_terrain_to_map(self, terrain, row, col):
@@ -185,3 +201,99 @@ def pit_terrain(terrain, depth, platform_size=1.):
     y1 = terrain.width // 2 - platform_size
     y2 = terrain.width // 2 + platform_size
     terrain.height_field_raw[x1:x2, y1:y2] = -depth
+
+def blocky_hard_terrain(terrain, choice, difficulty):
+    slope = 0.22 + 0.18 * difficulty
+    step_height = 0.08 + 0.16 * difficulty
+    obstacle_height = 0.08 + 0.18 * difficulty
+    platform_size = 2.0
+
+    if choice < 0.18:
+        if choice < 0.09:
+            slope *= -1
+        terrain_utils.pyramid_sloped_terrain(terrain, slope=slope, platform_size=platform_size)
+        _add_blocky_noise(terrain, max_height=0.035 + 0.025 * difficulty, block_size=0.45)
+    elif choice < 0.48:
+        if choice < 0.33:
+            step_height *= -1
+        terrain_utils.pyramid_stairs_terrain(
+            terrain,
+            step_width=0.30,
+            step_height=step_height,
+            platform_size=platform_size,
+        )
+    elif choice < 0.73:
+        terrain_utils.discrete_obstacles_terrain(
+            terrain,
+            max_height=obstacle_height,
+            min_size=0.7,
+            max_size=1.8,
+            num_rects=18,
+            platform_size=platform_size,
+        )
+    elif choice < 0.88:
+        stone_size = max(0.65, 1.25 - 0.45 * difficulty)
+        terrain_utils.stepping_stones_terrain(
+            terrain,
+            stone_size=stone_size,
+            stone_distance=0.08 + 0.08 * difficulty,
+            max_height=0.06 + 0.06 * difficulty,
+            platform_size=platform_size,
+            depth=-0.45,
+        )
+    else:
+        _add_blocky_noise(terrain, max_height=0.08 + 0.08 * difficulty, block_size=0.55)
+        terrain_utils.discrete_obstacles_terrain(
+            terrain,
+            max_height=obstacle_height,
+            min_size=0.5,
+            max_size=1.3,
+            num_rects=12,
+            platform_size=platform_size,
+        )
+
+    _add_extra_block_obstacles(
+        terrain,
+        max_height=0.06 + 0.12 * difficulty,
+        num_rects=4 + int(4 * difficulty),
+        min_size=0.35,
+        max_size=0.9,
+        platform_size=1.6,
+    )
+
+
+def _add_blocky_noise(terrain, max_height, block_size):
+    block_px = max(1, int(block_size / terrain.horizontal_scale))
+    rows = int(np.ceil(terrain.length / block_px))
+    cols = int(np.ceil(terrain.width / block_px))
+    height_step = max(1, int(0.01 / terrain.vertical_scale))
+    max_height_raw = max(height_step, int(max_height / terrain.vertical_scale))
+    height_choices = np.arange(-max_height_raw, max_height_raw + height_step, height_step)
+    coarse = np.random.choice(height_choices, size=(rows, cols))
+    noise = np.repeat(np.repeat(coarse, block_px, axis=0), block_px, axis=1)
+    terrain.height_field_raw += noise[:terrain.length, :terrain.width].astype(np.int16)
+
+
+def _add_extra_block_obstacles(terrain, max_height, num_rects, min_size, max_size, platform_size):
+    max_height = int(max_height / terrain.vertical_scale)
+    min_size = max(1, int(min_size / terrain.horizontal_scale))
+    max_size = max(min_size + 1, int(max_size / terrain.horizontal_scale))
+    platform_size = int(platform_size / terrain.horizontal_scale)
+    center_x = terrain.length // 2
+    center_y = terrain.width // 2
+    half_platform = platform_size // 2
+
+    for _ in range(num_rects):
+        length = np.random.randint(min_size, max_size + 1)
+        width = np.random.randint(min_size, max_size + 1)
+        start_x = np.random.randint(0, max(1, terrain.length - length))
+        start_y = np.random.randint(0, max(1, terrain.width - width))
+        if (
+            start_x < center_x + half_platform
+            and start_x + length > center_x - half_platform
+            and start_y < center_y + half_platform
+            and start_y + width > center_y - half_platform
+        ):
+            continue
+        height = np.random.choice([-max_height, -max_height // 2, max_height // 2, max_height])
+        terrain.height_field_raw[start_x:start_x + length, start_y:start_y + width] += height

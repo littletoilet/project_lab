@@ -52,9 +52,10 @@ class BaseTask():
         else:
             self.device = 'cpu'
 
-        # graphics device for rendering, -1 for no rendering
+        # graphics device for rendering, -1 for no rendering. Headless camera
+        # recording still needs a graphics device, even without a viewer.
         self.graphics_device_id = self.sim_device_id
-        if self.headless == True:
+        if self.headless == True and not getattr(cfg.viewer, "enable_camera_sensors", False):
             self.graphics_device_id = -1
 
         self.num_envs = cfg.env.num_envs

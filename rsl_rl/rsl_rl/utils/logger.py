@@ -13,6 +13,7 @@ import statistics
 import time
 import torch
 from collections import deque
+from pprint import pformat
 
 import rsl_rl
 
@@ -93,6 +94,8 @@ class Logger:
             self.writer.store_config(self.env_cfg, self.cfg)  # type: ignore
             for path in files_to_upload:
                 self.writer.save_file(path)  # type: ignore
+        if self.writer is not None:
+            self._store_config_text()
 
     def process_env_step(
         self,
@@ -105,7 +108,7 @@ class Logger:
         if self.writer is not None:
             if "episode" in extras:
                 self.ep_extras.append(extras["episode"])
-            elif "log" in extras:
+            if "log" in extras:
                 self.ep_extras.append(extras["log"])
 
             # Update rewards and episode length
@@ -141,10 +144,11 @@ class Logger:
         action_std: torch.Tensor,
         rnd_weight: float | None,
         print_minimal: bool = False,
+        print_to_console: bool = True,
         width: int = 80,
         pad: int = 40,
     ) -> None:
-        """Log the training metrics to the logging service and print them to the console.
+        """Log training metrics to the configured logging service.
 
         If videos are available, they are uploaded to the logging service (W&B) as well.
         """
@@ -157,8 +161,13 @@ class Logger:
             # Log episode extras
             extras_string = ""
             if self.ep_extras:
-                # Iterate over all keys in the episode info dictionary
-                for key in self.ep_extras[0]:
+                # Iterate over all keys seen in episode and per-step environment info dictionaries.
+                extra_keys = []
+                for ep_info in self.ep_extras:
+                    for key in ep_info:
+                        if key not in extra_keys:
+                            extra_keys.append(key)
+                for key in extra_keys:
                     infotensor = torch.tensor([], device=self.device)
                     # Iterate over all steps
                     for ep_info in self.ep_extras:
@@ -170,6 +179,8 @@ class Logger:
                         if len(ep_info[key].shape) == 0:
                             ep_info[key] = ep_info[key].unsqueeze(0)
                         infotensor = torch.cat((infotensor, ep_info[key].to(self.device)))
+                    if infotensor.numel() == 0:
+                        continue
                     value = torch.mean(infotensor)
                     if "/" in key:
                         self.writer.add_scalar(key, value, it)  # type: ignore
@@ -178,19 +189,48 @@ class Logger:
                         self.writer.add_scalar("Episode/" + key, value, it)  # type: ignore
                         extras_string += f"""{f"Mean episode {key}:":>{pad}} {value:.4f}\n"""
 
-            # Log losses
+            # Log PPO losses and optimization diagnostics
+            loss_tags = {
+                "value": "Loss/value",
+                "surrogate": "Loss/surrogate",
+                "entropy": "Loss/entropy",
+                "total": "Loss/total",
+                "rnd": "Loss/rnd",
+                "symmetry": "Loss/symmetry",
+                "approx_kl": "Optim/approx_kl",
+                "clip_fraction": "Optim/clip_fraction",
+                "ratio": "Optim/ratio",
+                "actor_grad_norm": "Optim/actor_grad_norm",
+                "critic_grad_norm": "Optim/critic_grad_norm",
+                "advantage": "Train/advantage_mean",
+                "return": "Train/return_mean",
+                "value_prediction": "Train/value_prediction_mean",
+                "explained_variance": "Train/explained_variance",
+            }
             for key, value in loss_dict.items():
-                self.writer.add_scalar(f"Loss/{key}", value, it)
+                self.writer.add_scalar(loss_tags.get(key, f"Optim/{key}"), value, it)
             self.writer.add_scalar("Loss/learning_rate", learning_rate, it)
+            self.writer.add_scalar("Train/total_timesteps", self.tot_timesteps, it)
 
             # Log std
-            self.writer.add_scalar("Policy/mean_std", action_std.mean().item(), it)
+            action_std_by_dim = action_std.detach()
+            if action_std_by_dim.ndim > 1:
+                action_std_by_dim = action_std_by_dim.reshape(-1, action_std_by_dim.shape[-1]).mean(dim=0)
+            action_std_flat = action_std_by_dim.flatten()
+            self.writer.add_scalar("Policy/mean_std", action_std_flat.mean().item(), it)
+            self.writer.add_scalar("Policy/min_std", action_std_flat.min().item(), it)
+            self.writer.add_scalar("Policy/max_std", action_std_flat.max().item(), it)
+            if self.logger_type == "tensorboard":
+                self.writer.add_histogram("Policy/action_std", action_std_flat, it)
+            for action_id, std_value in enumerate(action_std_flat):
+                self.writer.add_scalar(f"Policy/action_std/action_{action_id:02d}", std_value.item(), it)
 
             # Log performance
             fps = int(collection_size / (collect_time + learn_time))
             self.writer.add_scalar("Perf/total_fps", fps, it)
             self.writer.add_scalar("Perf/collection_time", collect_time, it)
             self.writer.add_scalar("Perf/learning_time", learn_time, it)
+            self.writer.add_scalar("Perf/iteration_time", iteration_time, it)
 
             # Log rewards and episode length
             if len(self.rewbuffer) > 0:
@@ -208,52 +248,61 @@ class Logger:
                         "Train/mean_episode_length/time", statistics.mean(self.lenbuffer), int(self.tot_time)
                     )
 
-            # Print to console
-            log_string = f"""{"#" * width}\n"""
-            log_string += f"""\033[1m{f" Learning iteration {it}/{total_it} ".center(width)}\033[0m \n\n"""
+            if print_to_console:
+                # Print to console
+                log_string = f"""{"#" * width}\n"""
+                log_string += f"""\033[1m{f" Learning iteration {it}/{total_it} ".center(width)}\033[0m \n\n"""
 
-            # Print run name if provided
-            run_name = self.cfg.get("run_name")
-            log_string += f"""{"Run name:":>{pad}} {run_name}\n""" if run_name else ""
+                # Print run name if provided
+                run_name = self.cfg.get("run_name")
+                log_string += f"""{"Run name:":>{pad}} {run_name}\n""" if run_name else ""
 
-            # Print performance
-            log_string += (
-                f"""{"Total steps:":>{pad}} {self.tot_timesteps} \n"""
-                f"""{"Steps per second:":>{pad}} {fps:.0f} \n"""
-                f"""{"Collection time:":>{pad}} {collect_time:.3f}s \n"""
-                f"""{"Learning time:":>{pad}} {learn_time:.3f}s \n"""
-            )
+                # Print performance
+                log_string += (
+                    f"""{"Total steps:":>{pad}} {self.tot_timesteps} \n"""
+                    f"""{"Steps per second:":>{pad}} {fps:.0f} \n"""
+                    f"""{"Collection time:":>{pad}} {collect_time:.3f}s \n"""
+                    f"""{"Learning time:":>{pad}} {learn_time:.3f}s \n"""
+                )
 
-            # Print losses
-            for key, value in loss_dict.items():
-                log_string += f"""{f"Mean {key} loss:":>{pad}} {value:.4f}\n"""
+                # Print losses
+                for key, value in loss_dict.items():
+                    if key not in {"value", "surrogate", "entropy", "total", "rnd", "symmetry"}:
+                        continue
+                    log_string += f"""{f"Mean {key} loss:":>{pad}} {value:.4f}\n"""
+                if "approx_kl" in loss_dict:
+                    log_string += f"""{"Mean approx KL:":>{pad}} {loss_dict["approx_kl"]:.5f}\n"""
+                if "clip_fraction" in loss_dict:
+                    log_string += f"""{"Mean clip fraction:":>{pad}} {loss_dict["clip_fraction"]:.4f}\n"""
+                if "explained_variance" in loss_dict:
+                    log_string += f"""{"Value explained variance:":>{pad}} {loss_dict["explained_variance"]:.4f}\n"""
 
-            # Print rewards and episode length
-            if len(self.rewbuffer) > 0:
-                if self.cfg["algorithm"]["rnd_cfg"]:
-                    log_string += f"""{"Mean extrinsic reward:":>{pad}} {statistics.mean(self.erewbuffer):.2f}\n"""
-                    log_string += f"""{"Mean intrinsic reward:":>{pad}} {statistics.mean(self.irewbuffer):.2f}\n"""
-                log_string += f"""{"Mean reward:":>{pad}} {statistics.mean(self.rewbuffer):.2f}\n"""
-                log_string += f"""{"Mean episode length:":>{pad}} {statistics.mean(self.lenbuffer):.2f}\n"""
+                # Print rewards and episode length
+                if len(self.rewbuffer) > 0:
+                    if self.cfg["algorithm"]["rnd_cfg"]:
+                        log_string += f"""{"Mean extrinsic reward:":>{pad}} {statistics.mean(self.erewbuffer):.2f}\n"""
+                        log_string += f"""{"Mean intrinsic reward:":>{pad}} {statistics.mean(self.irewbuffer):.2f}\n"""
+                    log_string += f"""{"Mean reward:":>{pad}} {statistics.mean(self.rewbuffer):.2f}\n"""
+                    log_string += f"""{"Mean episode length:":>{pad}} {statistics.mean(self.lenbuffer):.2f}\n"""
 
-            # Print std
-            log_string += f"""{"Mean action std:":>{pad}} {action_std.mean().item():.2f}\n"""
+                # Print std
+                log_string += f"""{"Mean action std:":>{pad}} {action_std_flat.mean().item():.2f}\n"""
 
-            # Print episode extras
-            if not print_minimal:
-                log_string += extras_string
+                # Print episode extras
+                if not print_minimal:
+                    log_string += extras_string
 
-            # Print footer
-            done_it = it + 1 - start_it
-            remaining_it = total_it - start_it - done_it
-            eta = self.tot_time / done_it * remaining_it
-            log_string += (
-                f"""{"-" * width}\n"""
-                f"""{"Iteration time:":>{pad}} {iteration_time:.2f}s\n"""
-                f"""{"Time elapsed:":>{pad}} {time.strftime("%H:%M:%S", time.gmtime(self.tot_time))}\n"""
-                f"""{"ETA:":>{pad}} {time.strftime("%H:%M:%S", time.gmtime(eta))}\n"""
-            )
-            print(log_string)
+                # Print footer
+                done_it = it + 1 - start_it
+                remaining_it = total_it - start_it - done_it
+                eta = self.tot_time / done_it * remaining_it
+                log_string += (
+                    f"""{"-" * width}\n"""
+                    f"""{"Iteration time:":>{pad}} {iteration_time:.2f}s\n"""
+                    f"""{"Time elapsed:":>{pad}} {time.strftime("%H:%M:%S", time.gmtime(self.tot_time))}\n"""
+                    f"""{"ETA:":>{pad}} {time.strftime("%H:%M:%S", time.gmtime(eta))}\n"""
+                )
+                print(log_string)
 
             # Upload available videos
             if self.logger_type == "wandb":
@@ -272,6 +321,9 @@ class Logger:
         """Stop the logging writer."""
         if self.writer is not None and self.logger_type in ["neptune", "wandb"]:
             self.writer.stop()  # type: ignore
+        if self.writer is not None:
+            self.writer.flush()  # type: ignore
+            self.writer.close()  # type: ignore
 
     def _store_code_state(self) -> list[str]:
         """Store the current git diff of the code repositories involved in the experiment."""
@@ -306,3 +358,39 @@ class Logger:
                 # Add the file path to the list of files to be uploaded
                 files_to_upload.append(diff_file_name)
         return files_to_upload
+
+    def _store_config_text(self) -> None:
+        """Write train/env configuration snapshots for TensorBoard and the run directory."""
+        train_cfg_text = pformat(self._to_plain_config(self.cfg), sort_dicts=False)
+        env_cfg_text = pformat(self._to_plain_config(self.env_cfg), sort_dicts=False)
+        self.writer.add_text("Config/train_cfg", f"```python\n{train_cfg_text}\n```", 0)  # type: ignore
+        self.writer.add_text("Config/env_cfg", f"```python\n{env_cfg_text}\n```", 0)  # type: ignore
+        if self.log_dir is None:
+            return
+        for file_name, content in (("train_cfg.txt", train_cfg_text), ("env_cfg.txt", env_cfg_text)):
+            path = os.path.join(self.log_dir, file_name)
+            if not os.path.exists(path):
+                with open(path, "x", encoding="utf-8") as f:
+                    f.write(content)
+
+    def _to_plain_config(self, obj):
+        """Convert nested config classes to dict/list/scalar objects for readable logging."""
+        if isinstance(obj, dict):
+            return {key: self._to_plain_config(value) for key, value in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [self._to_plain_config(value) for value in obj]
+        if isinstance(obj, torch.Tensor):
+            return obj.detach().cpu().tolist()
+        if isinstance(obj, (str, int, float, bool, type(None))):
+            return obj
+        if hasattr(obj, "__dict__") or isinstance(obj, type):
+            result = {}
+            for key in dir(obj):
+                if key.startswith("_"):
+                    continue
+                value = getattr(obj, key)
+                if callable(value):
+                    continue
+                result[key] = self._to_plain_config(value)
+            return result
+        return repr(obj)

@@ -189,6 +189,17 @@ class PPO:
         mean_value_loss = 0
         mean_surrogate_loss = 0
         mean_entropy = 0
+        mean_total_loss = 0
+        mean_kl = 0
+        mean_clip_fraction = 0
+        mean_ratio = 0
+        mean_actor_grad_norm = 0
+        mean_critic_grad_norm = 0
+        mean_advantage = 0
+        mean_return = 0
+        mean_value = 0
+        mean_explained_variance = 0
+        explained_variance_updates = 0
         # RND loss
         mean_rnd_loss = 0 if self.rnd else None
         # Symmetry loss
@@ -262,6 +273,8 @@ class PPO:
                 ratio, 1.0 - self.clip_param, 1.0 + self.clip_param
             )
             surrogate_loss = torch.max(surrogate, surrogate_clipped).mean()
+            clip_fraction = (torch.abs(ratio - 1.0) > self.clip_param).float().mean()
+            approx_kl = (torch.squeeze(batch.old_actions_log_prob) - actions_log_prob).mean()  # type: ignore
 
             # Value function loss
             if self.use_clipped_value_loss:
@@ -296,8 +309,8 @@ class PPO:
                 self.reduce_parameters()
 
             # Apply the gradients for PPO
-            nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
-            nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+            actor_grad_norm = nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
+            critic_grad_norm = nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
             self.optimizer.step()
             # Apply the gradients for RND
             if self.rnd:
@@ -307,6 +320,22 @@ class PPO:
             mean_value_loss += value_loss.item()
             mean_surrogate_loss += surrogate_loss.item()
             mean_entropy += entropy.mean().item()
+            mean_total_loss += loss.item()
+            mean_kl += approx_kl.item()
+            mean_clip_fraction += clip_fraction.item()
+            mean_ratio += ratio.mean().item()
+            mean_actor_grad_norm += actor_grad_norm.item()
+            mean_critic_grad_norm += critic_grad_norm.item()
+            mean_advantage += batch.advantages.mean().item()  # type: ignore
+            mean_return += batch.returns.mean().item()
+            mean_value += values[:original_batch_size].mean().item()
+            returns = batch.returns[:original_batch_size]
+            predicted_values = values[:original_batch_size]
+            return_variance = torch.var(returns, unbiased=False)
+            if return_variance > 1e-8:
+                explained_variance = 1.0 - torch.var(returns - predicted_values, unbiased=False) / return_variance
+                mean_explained_variance += explained_variance.item()
+                explained_variance_updates += 1
             # RND loss
             if mean_rnd_loss is not None:
                 mean_rnd_loss += rnd_loss.item()
@@ -319,6 +348,17 @@ class PPO:
         mean_value_loss /= num_updates
         mean_surrogate_loss /= num_updates
         mean_entropy /= num_updates
+        mean_total_loss /= num_updates
+        mean_kl /= num_updates
+        mean_clip_fraction /= num_updates
+        mean_ratio /= num_updates
+        mean_actor_grad_norm /= num_updates
+        mean_critic_grad_norm /= num_updates
+        mean_advantage /= num_updates
+        mean_return /= num_updates
+        mean_value /= num_updates
+        if explained_variance_updates > 0:
+            mean_explained_variance /= explained_variance_updates
         if mean_rnd_loss is not None:
             mean_rnd_loss /= num_updates
         if mean_symmetry_loss is not None:
@@ -329,6 +369,16 @@ class PPO:
             "value": mean_value_loss,
             "surrogate": mean_surrogate_loss,
             "entropy": mean_entropy,
+            "total": mean_total_loss,
+            "approx_kl": mean_kl,
+            "clip_fraction": mean_clip_fraction,
+            "ratio": mean_ratio,
+            "actor_grad_norm": mean_actor_grad_norm,
+            "critic_grad_norm": mean_critic_grad_norm,
+            "advantage": mean_advantage,
+            "return": mean_return,
+            "value_prediction": mean_value,
+            "explained_variance": mean_explained_variance,
         }
         if self.rnd:
             loss_dict["rnd"] = mean_rnd_loss

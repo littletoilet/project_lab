@@ -125,12 +125,14 @@ class LeggedRobot(BaseTask):
         self.check_termination()
         self.compute_reward()
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+        self.extras = {}
         self.reset_idx(env_ids)
         self.compute_observations() # in some cases a simulation step might be required to refresh some obs (for example body positions)
 
         self.last_actions[:] = self.actions[:]
         self.last_dof_vel[:] = self.dof_vel[:]
         self.last_root_vel[:] = self.root_states[:, 7:13]
+        self._fill_extras_log()
 
         if self.viewer and self.enable_viewer_sync and self.debug_viz:
             self._draw_debug_vis()
@@ -186,6 +188,36 @@ class LeggedRobot(BaseTask):
         # send timeout info to the algorithm
         if self.cfg.env.send_timeouts:
             self.extras["time_outs"] = self.time_out_buf
+
+    def _fill_extras_log(self):
+        """Adds lightweight per-step diagnostics for TensorBoard."""
+        clip_actions = float(self.cfg.normalization.clip_actions)
+        action_abs = torch.abs(self.actions)
+        torque_abs = torch.abs(self.torques)
+        lin_vel_error = torch.norm(self.commands[:, :2] - self.base_lin_vel[:, :2], dim=1)
+        yaw_vel_error = torch.abs(self.commands[:, 2] - self.base_ang_vel[:, 2])
+
+        log = self.extras.setdefault("log", {})
+        log["Env/mean_base_lin_vel_x"] = torch.mean(self.base_lin_vel[:, 0])
+        log["Env/mean_base_lin_vel_y"] = torch.mean(self.base_lin_vel[:, 1])
+        log["Env/mean_base_ang_vel_yaw"] = torch.mean(self.base_ang_vel[:, 2])
+        log["Env/mean_command_lin_vel_x"] = torch.mean(self.commands[:, 0])
+        log["Env/mean_command_lin_vel_y"] = torch.mean(self.commands[:, 1])
+        log["Env/mean_command_ang_vel_yaw"] = torch.mean(self.commands[:, 2])
+        log["Env/mean_lin_vel_tracking_error"] = torch.mean(lin_vel_error)
+        log["Env/mean_yaw_vel_tracking_error"] = torch.mean(yaw_vel_error)
+        log["Env/mean_base_height"] = torch.mean(self.root_states[:, 2])
+        log["Env/mean_abs_action"] = torch.mean(action_abs)
+        log["Env/max_abs_action"] = torch.max(action_abs)
+        log["Env/action_saturation"] = torch.mean((action_abs > 0.95 * clip_actions).float())
+        log["Env/mean_abs_torque"] = torch.mean(torque_abs)
+        log["Env/max_abs_torque"] = torch.max(torque_abs)
+        log["Env/mean_abs_dof_vel"] = torch.mean(torch.abs(self.dof_vel))
+        log["Env/reset_rate"] = torch.mean(self.reset_buf.float())
+        log["Env/timeout_rate"] = torch.mean(self.time_out_buf.float())
+        log["Env/fall_rate"] = torch.mean((self.reset_buf & ~self.time_out_buf).float())
+        if hasattr(self, "terrain_levels"):
+            log["Env/mean_terrain_level"] = torch.mean(self.terrain_levels.float())
     
     def compute_reward(self):
         """ Compute rewards

@@ -167,6 +167,17 @@ def get_args():
         {"name": "--record_video", "action": "store_true", "default": False, "help": "Record viewer frames to disk (play.py)."},
         {"name": "--export_video", "action": "store_true", "default": False, "help": "Export recorded frames to mp4 (play.py)."},
         {"name": "--video_fps", "type": int, "default": 30, "help": "FPS for exported mp4 when --export_video is set."},
+        {"name": "--scenario", "type": str, "default": "clean_rough", "help": "Robustness evaluation scenario (eval_robustness.py)."},
+        {"name": "--episodes", "type": int, "default": 20, "help": "Number of completed episodes to collect during evaluation."},
+        {"name": "--output_dir", "type": str, "help": "Directory for evaluation CSV/Markdown outputs."},
+        {"name": "--max_frames", "type": int, "default": 1200, "help": "Maximum number of PNG frames to save for each visualization item."},
+        {"name": "--frame_stride", "type": int, "default": 2, "help": "Save one visualization frame every N policy steps."},
+        {"name": "--frame_width", "type": int, "default": 1280, "help": "Recorded frame width for robustness visualization."},
+        {"name": "--frame_height", "type": int, "default": 720, "help": "Recorded frame height for robustness visualization."},
+        {"name": "--viz_suite", "type": str, "default": "single", "help": "Visualization suite: single, ablations, final, terrain_gallery, or all."},
+        {"name": "--baseline_task", "type": str, "default": "a1", "help": "Baseline task name used by robustness visualization suites."},
+        {"name": "--final_task", "type": str, "default": "a1_robust_all", "help": "Final robust task name used by robustness visualization suites."},
+        {"name": "--camera_env", "type": int, "default": 0, "help": "Environment index followed by the recording camera."},
     ]
     # parse arguments
     args = gymutil.parse_arguments(
@@ -193,6 +204,8 @@ def export_policy_as_jit(actor_or_actor_critic, path):
         model = copy.deepcopy(actor_or_actor_critic.actor).to('cpu')
     else:
         model = copy.deepcopy(actor_or_actor_critic).to('cpu')
+    if hasattr(model, 'as_jit'):
+        model = model.as_jit()
     traced_script_module = torch.jit.script(model)
     traced_script_module.save(path)
 
@@ -224,5 +237,3 @@ class PolicyExporterLSTM(torch.nn.Module):
         self.to('cpu')
         traced_script_module = torch.jit.script(self)
         traced_script_module.save(path)
-
-    
