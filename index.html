@@ -19,8 +19,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-  <title>DiffST: Spatiotemporal-Aware Diffusion for Real-World Space-Time Video Super-Resolution</title>
-  <link rel="icon" type="image/x-icon" href="static/figs/zhengchen.ico">
+  <title>Robustifying Reinforcement-Learned Quadruped Locomotion under Terrain and Dynamics Shifts</title>
+  <link rel="icon" type="image/x-icon" href="static/figs/favicon.ico">
   <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
   rel="stylesheet">
 
@@ -61,7 +61,6 @@
               <!-- Institutions -->
               <span class="institution-block">
                 <sup>1</sup>Shanghai Jiao Tong University,
-                TBD
               </span>
             </div>
 
@@ -88,19 +87,25 @@
   <!-- Example Section-->
   <section class="section hero">
     <div class="container is-max-desktop">
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-five-sixths">
-          <figure>
-            <img src="static/figs/compare.png" alt="BinaryDemoire Example Illustration">
-          </figure>
-          <div class="content has-text-justified" style="margin-top: 1rem;">
-            <p>
-              Visual comparison on the real-world dataset. Our proposed <strong>DiffST</strong> outperforms others with rich and consistent details.
-              <!-- Visual comparison of ST-VSR methods on the real-world dataset ST-VSR. Our proposed <strong>DifffST</strong> achieves superior performance in terms of fidelity, perceptual, and consistency. -->
-            </p>
+      <div class="video-pair">
+        <figure class="video-card">
+          <div class="video-frame">
+            <video class="result-video" autoplay muted loop playsinline preload="auto">
+              <source src="static/videos/final_bad.mp4" type="video/mp4">
+            </video>
+            <span class="video-label">Original</span>
           </div>
-        </div>
+        </figure>
+        <figure class="video-card">
+          <div class="video-frame">
+            <video class="result-video" autoplay muted loop playsinline preload="auto">
+              <source src="static/videos/final_good.mp4" type="video/mp4">
+            </video>
+            <span class="video-label video-label-good">Robust</span>
+          </div>
+        </figure>
       </div>
+      <p>Performance comparison in complex scenarios. Our robustly optimized model shows stronger generalization ablity.</p>
     </div>
   </section>
   <!-- End Example Section-->
@@ -127,7 +132,7 @@
   <!-- End paper abstract -->
 
   <!-- Method Section-->
-  <section class="section hero">
+  <!-- <section class="section hero">
     <div class="container is-max-desktop">
       <div class="columns is-centered has-text-centered">
         <div class="column is-five-sixths">
@@ -145,7 +150,7 @@
         </div>
       </div>
     </div>
-  </section>
+  </section> -->
   <!-- End Method Section-->
 
   <!-- Performance Section-->
@@ -155,13 +160,12 @@
         <div class="column is-five-sixths">
           <h2 class="title is-3 has-text-left">Performance</h2>
           <figure>
-            <img src="static/figs/performance-chart.png" alt="ST-VSR Performance Comparison">
+            <img src="static/figs/fig_02_survival_time_heatmap_transparent.png" alt="ST-VSR Performance Comparison">
             <figcaption class="title is-5">Performance Comparison With Other ST-VSR methods</figcaption>
           </figure>
           <div class="content has-text-justified" style="margin-top: 1rem;">
             <p>
-              The proposed DiffST achieves superior performance in terms of fidelity, perceptual, and consistency. 
-              In addition, compared with the multi-step STVSR method, VEnhancer, DiffST achieves approximately 17× faster inference speedup.
+              Comparison of survival rate in various conditions. Our proposed robust model achieves superior performance in terms of survival time across all scenarios.
             </p>
           </div>
         </div>
@@ -178,21 +182,118 @@
           <div class="column is-five-sixths">
             <h2 class="title is-3">Results</h2>
             <details open>
-              <summary class="title is-5">Quantitative Results (click to expand)</summary>
+              <summary class="title is-5">Quantitative Results</summary>
               <div class="content">
-                <ul><li class="title is-6">Quantitative Results (Tab. 4 of the main paper)</li></ul>
+                <ul><li class="title is-6">Main Experiment</li></ul>
                 <p class="has-text-centered">
-                  <img src="static/figs/quantitative.png" >
+                  <img src="static/figs/main_results.png">
                 </p>
               </div>
+              <details>
+                <summary class="title is-6">More Quantitative Results</summary>
+                <ul><li class="title is-6">Survival Rate</li></ul>
+                <p class="has-text-centered">
+                  <img src="static/figs/succ_surv_rate.png">
+                </p>
+                <ul><li class="title is-6">Errors</li></ul>
+                <p class="has-text-centered">
+                  <img src="static/figs/error_1.png">
+                  <img src="static/figs/error_2.png">
+                </p>
+              </details>
             </details>
             <details open>
-              <summary class="title is-5">Qualitative Results (click to expand)</summary>
+              <summary class="title is-5">Visual Results</summary>
               <div class="content">
-                <ul><li class="title is-6">Visual Results (Fig. 5 of the main paper)</li></ul>
-                <p class="has-text-centered">
-                  <img src="static/figs/visual.png" >
-                </p>
+                  <div class="video-slider" aria-label="Visual results carousel">
+                    <button class="slider-arrow slider-arrow-left" type="button" onclick="moveSlide(-1)" aria-label="Previous examples">
+                      <i class="fas fa-chevron-left"></i>
+                    </button>
+
+                    <div class="slider-window">
+                      <div class="slider-track" id="videoSliderTrack">
+
+                        <!-- Slide 1 -->
+                        <div class="video-slide">
+                          <div class="video-pair">
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/friction_bad.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label">Bad</span>
+                              </div>
+                            </figure>
+
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/friction_good.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label video-label-good">Good</span>
+                              </div>
+                            </figure>
+                          </div>
+                          <p class="video-caption">Friction disturbance</p>
+                        </div>
+
+                        <!-- Slide 2 -->
+                        <div class="video-slide">
+                          <div class="video-pair">
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/push_bad.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label">Bad</span>
+                              </div>
+                            </figure>
+
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/push_good.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label video-label-good">Good</span>
+                              </div>
+                            </figure>
+                          </div>
+                          <p class="video-caption">External push</p>
+                        </div>
+
+                        <!-- Slide 3 -->
+                        <div class="video-slide">
+                          <div class="video-pair">
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/mass_bad.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label">Bad</span>
+                              </div>
+                            </figure>
+
+                            <figure class="video-card">
+                              <div class="video-frame">
+                                <video class="result-video" autoplay muted loop playsinline preload="auto">
+                                  <source src="static/videos/mass_good.mp4" type="video/mp4">
+                                </video>
+                                <span class="video-label video-label-good">Good</span>
+                              </div>
+                            </figure>
+                          </div>
+                          <p class="video-caption">Randomized mass</p>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    <button class="slider-arrow slider-arrow-right" type="button" onclick="moveSlide(1)" aria-label="Next examples">
+                      <i class="fas fa-chevron-right"></i>
+                    </button>
+                  </div>
+
+                  <div class="slider-dots" id="sliderDots"></div>
               </div>
             </details>
           </div>
@@ -201,23 +302,6 @@
     </div>
   </section>
   <!-- End Results Section -->
-
-  <!-- BibTeX citation -->
-  <!-- <section class="section hero is-small is-light">
-    <div class="container is-max-desktop">
-      <div class="columns is-centered has-text-left">
-        <div class="column is-five-sixths">
-          <h2 class="title">BibTeX</h2>
-            <pre style="background-color: #ffffff; overflow-x: auto; white-space: pre-wrap;">
-              <code>
-                TBD
-              </code>
-            </pre>
-        </div>
-      </div>
-    </div>
-  </section> -->
-  <!-- End BibTeX citation -->
 
   <footer class="footer">
     <div class="container">
@@ -245,6 +329,251 @@
 <!-- You can add a tracker to track page visits by creating an account at statcounter.com -->
 
 <!-- End of Statcounter Code -->
+<style>
+  .video-slider {
+    position: relative;
+    width: 100%;
+    margin-top: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slider-window {
+    width: 100%;
+    overflow: hidden;
+    border-top: 1px solid #242424;
+    border-bottom: 1px solid #242424;
+    padding: 0.45rem 0;
+  }
+
+  .slider-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .video-slide {
+    min-width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+  }
+
+  .video-pair {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .video-card {
+    flex: 0 0 calc((100% - 0.8rem) / 2);
+    min-width: 0;
+    margin: 0 !important;
+    text-align: center;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .video-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 7px;
+    background: #050505;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    flex: 0 0 auto;
+  }
+
+  .result-video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    background: #050505;
+  }
+
+  .video-label {
+    position: absolute;
+    left: 0.65rem;
+    top: 0.65rem;
+    padding: 0.24rem 0.58rem;
+    border-radius: 3px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.52);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0;
+    pointer-events: none;
+  }
+
+  .video-label-good {
+    background: rgba(21, 101, 64, 0.72);
+  }
+
+  .video-caption {
+    min-height: 1.45rem;
+    margin: 0.45rem 0 0;
+    margin-bottom: 0;
+    color: #303030;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .slider-arrow {
+    position: absolute;
+    z-index: 10;
+    border: none;
+    background: rgba(255, 255, 255, 0.92);
+    color: #323232;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .slider-arrow:hover {
+    background: #fff;
+    transform: scale(1.05);
+  }
+
+  .slider-arrow-left {
+    left: 0.45rem;
+  }
+
+  .slider-arrow-right {
+    right: 0.45rem;
+  }
+
+  .slider-dots {
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  .slider-dot {
+    display: inline-block;
+    width: 0.52rem;
+    height: 0.52rem;
+    margin: 0 0.24rem;
+    border-radius: 50%;
+    background: #c9c9c9;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .slider-dot.active {
+    background: #333;
+    transform: scale(1.15);
+  }
+
+  @media screen and (max-width: 768px) {
+    .slider-window {
+      padding: 0.35rem 0;
+    }
+
+    .video-pair {
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .video-card {
+      flex-basis: auto;
+      width: 100%;
+    }
+
+    .slider-arrow {
+      width: 2.35rem;
+      height: 2.35rem;
+    }
+
+    .video-label {
+      left: 0.5rem;
+      top: 0.5rem;
+      font-size: 0.72rem;
+      padding: 0.22rem 0.5rem;
+    }
+
+    .video-caption {
+      font-size: 0.84rem;
+    }
+  }
+</style>
+
+<script>
+  let currentSlide = 0;
+
+  const track = document.getElementById("videoSliderTrack");
+  const slides = document.querySelectorAll(".video-slide");
+  const dotsContainer = document.getElementById("sliderDots");
+  const resultVideos = document.querySelectorAll(".result-video");
+
+  function playVisualVideos() {
+    resultVideos.forEach((video) => {
+      video.muted = true;
+      video.controls = false;
+      const playPromise = video.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          video.setAttribute("data-autoplay-blocked", "true");
+        });
+      }
+    });
+  }
+
+  slides.forEach((_, index) => {
+    const dot = document.createElement("span");
+    dot.className = "slider-dot";
+    dot.onclick = () => goToSlide(index);
+    dotsContainer.appendChild(dot);
+  });
+
+  const dots = document.querySelectorAll(".slider-dot");
+
+  function updateSlider() {
+    track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+    dots.forEach((dot, index) => {
+      dot.classList.toggle("active", index === currentSlide);
+    });
+
+    playVisualVideos();
+  }
+
+  function moveSlide(direction) {
+    currentSlide += direction;
+
+    if (currentSlide < 0) {
+      currentSlide = slides.length - 1;
+    }
+
+    if (currentSlide >= slides.length) {
+      currentSlide = 0;
+    }
+
+    updateSlider();
+  }
+
+  function goToSlide(index) {
+    currentSlide = index;
+    updateSlider();
+  }
+
+  window.addEventListener("load", playVisualVideos);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      playVisualVideos();
+    }
+  });
+
+  updateSlider();
+</script>
 
 </body>
 </html>
