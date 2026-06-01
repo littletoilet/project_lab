@@ -3,7 +3,7 @@
 [Ruofan Yang](https://github.com/RENLEILEI-Y), [Juquan Wen](), [Zihan Zhou](https://github.com/littletoilet)
 <div>
 <a href="https://github.com/littletoilet/project_lab" target='_blank' style="text-decoration: none;"><img src="https://visitor-badge.laobi.icu/badge?page_id=littletoilet/project_lab"></a>
-<a href="https://github.com/littletoilet/project_lab/stargazers" target='_blank' style="text-decoration: none;"><img src="https://img.shields.io/github/stars/littletoilet/project_lab?style=social"></a>
+<a href="https://github.com/littletoilet/project_lab/stargazers" target='_blank' style="text-decoration: none;"><img alt="GitHub stars" src="https://img.shields.io/github/stars/littletoilet/project_lab.svg?style=social"></a>
 </div>
 
 [[project](https://littletoilet.github.io/project_lab/)]
@@ -49,17 +49,11 @@
 <details open>
   <summary>Visual Results</summary>
 
-  - Terrain Visualtization
+  - Terrain Visualization
 
-  <div align="center">
-    <img width="48.5%" src="assets/clean_rough.png">
-    &nbsp;&nbsp;
-    <img width="48%" src="assets/hard_terrain.png">
-    <br>
-    <span style="display:inline-block; width:48.5%; text-align:center;"><p>Clean Rough Terrain</p></span>
-    &nbsp;&nbsp;
-    <span style="display:inline-block; width:48%; text-align:center;"><p>Hard Terrain</p></span>
-  </div>
+  <p align="center">
+    <img width="900" src="assets/terrain_visualization.png">
+  </p>
 
   - More visual results are in our [project website](https://littletoilet.github.io/project_lab/).
 </details>
