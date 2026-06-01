@@ -1,4 +1,7 @@
 legged_gym/
+isaacgym/
+.codex/
+.agents/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
