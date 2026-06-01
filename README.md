@@ -6,6 +6,8 @@
 <a href="https://github.com/littletoilet/project_lab/stargazers" target='_blank' style="text-decoration: none;"><img src="https://img.shields.io/github/stars/littletoilet/project_lab?style=social"></a>
 </div>
 
+[[project](https://littletoilet.github.io/project_lab/)]
+
 #### 🔥🔥🔥 News
 
 - **2026-05-29:** This repo is released.
