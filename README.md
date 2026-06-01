@@ -317,6 +317,8 @@ Generate overview images for the six test scenarios:
 conda run -n legged_gym python legged_gym/legged_gym/scripts/visualize_robustness.py \
   --viz_suite=terrain_gallery \
   --task=a1 \
+  --terrain_width=3840 \
+  --terrain_height=2160 \
   --output_dir=legged_gym/logs/phase2_visualization
 ```
 

@@ -4,6 +4,7 @@ import copy
 import os
 import subprocess
 import sys
+import textwrap
 from datetime import datetime
 
 import isaacgym
@@ -61,6 +62,17 @@ def _terrain_height_m(terrain):
     return terrain.height_field_raw.astype(np.float32) * terrain.cfg.vertical_scale
 
 
+def _wrapped_note(text, width=34):
+    return textwrap.fill(str(text), width=width)
+
+
+def _terrain_figure_size(args):
+    width = max(1, getattr(args, "terrain_width", 3840))
+    height = max(1, getattr(args, "terrain_height", 2160))
+    dpi = 200
+    return width / dpi, height / dpi, dpi
+
+
 def write_terrain_overview(args, scenario):
     env_cfg, _ = task_registry.get_cfgs(name=args.task)
     env_cfg = copy.deepcopy(env_cfg)
@@ -78,8 +90,9 @@ def write_terrain_overview(args, scenario):
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{scenario}.png")
 
-    fig = plt.figure(figsize=(11.5, 7.0), dpi=140)
-    ax = fig.add_axes([0.06, 0.09, 0.66, 0.82])
+    fig_width, fig_height, fig_dpi = _terrain_figure_size(args)
+    fig = plt.figure(figsize=(fig_width, fig_height), dpi=fig_dpi)
+    ax = fig.add_axes([0.06, 0.10, 0.58, 0.80])
     im = ax.imshow(heights, cmap="terrain", origin="lower")
     ax.set_title(f"{scenario}: terrain layout", fontsize=13)
     ax.set_xlabel("terrain y cells")
@@ -87,17 +100,24 @@ def write_terrain_overview(args, scenario):
     cell_x = terrain.length_per_env_pixels
     cell_y = terrain.width_per_env_pixels
     border = terrain.border
+    crop_pad = int(0.18 * max(cell_x, cell_y))
+    x_min = max(0, border - crop_pad)
+    x_max = min(heights.shape[1] - 1, border + env_cfg.terrain.num_cols * cell_y + crop_pad)
+    y_min = max(0, border - crop_pad)
+    y_max = min(heights.shape[0] - 1, border + env_cfg.terrain.num_rows * cell_x + crop_pad)
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(y_min, y_max)
     for row in range(env_cfg.terrain.num_rows + 1):
         ax.axhline(border + row * cell_x, color="white", linewidth=0.45, alpha=0.7)
     for col in range(env_cfg.terrain.num_cols + 1):
         ax.axvline(border + col * cell_y, color="white", linewidth=0.45, alpha=0.7)
-    cbar = fig.colorbar(im, ax=ax, fraction=0.036, pad=0.025)
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.035)
     cbar.set_label("height (m)")
 
-    note_ax = fig.add_axes([0.77, 0.13, 0.2, 0.75])
+    note_ax = fig.add_axes([0.79, 0.12, 0.18, 0.76])
     note_ax.axis("off")
     note_ax.text(0.0, 0.96, "Scenario", fontsize=12, weight="bold")
-    note_ax.text(0.0, 0.86, SCENARIO_NOTES[scenario], fontsize=10, wrap=True)
+    note_ax.text(0.0, 0.88, _wrapped_note(SCENARIO_NOTES[scenario], 33), fontsize=10, va="top")
     note_ax.text(0.0, 0.62, "Terrain mix", fontsize=12, weight="bold")
     if getattr(env_cfg.terrain, "complex_hard_terrain", False):
         terrain_labels = "slope / stairs / obstacles / stones / shallow pits / extra blocks"
@@ -105,11 +125,17 @@ def write_terrain_overview(args, scenario):
     else:
         terrain_labels = "slope / rough slope / stairs / obstacles / stones / gaps / pits"
         terrain_mix = str(env_cfg.terrain.terrain_proportions)
-    note_ax.text(0.0, 0.52, terrain_labels, fontsize=9, wrap=True)
-    note_ax.text(0.0, 0.34, terrain_mix, fontsize=9, wrap=True)
-    note_ax.text(0.0, 0.16, "Grid cells show the test sub-terrains used for rollouts.", fontsize=9, wrap=True)
+    note_ax.text(0.0, 0.54, _wrapped_note(terrain_labels, 34), fontsize=9, va="top")
+    note_ax.text(0.0, 0.32, _wrapped_note(terrain_mix, 34), fontsize=9, va="top")
+    note_ax.text(
+        0.0,
+        0.16,
+        _wrapped_note("Grid cells show the test sub-terrains used for rollouts.", 34),
+        fontsize=9,
+        va="top",
+    )
 
-    fig.savefig(out_path, bbox_inches="tight")
+    fig.savefig(out_path, dpi=fig_dpi)
     plt.close(fig)
     return out_path
 
@@ -341,6 +367,7 @@ def run_suite(args):
     with open(manifest, "w") as f:
         f.write("# Robustness Visualization Manifest\n\n")
         f.write(f"- output_dir: `{out_dir}`\n")
+        f.write(f"- terrain_resolution: `{args.terrain_width}x{args.terrain_height}`\n")
         f.write(f"- max_frames_per_item: `{args.max_frames}`\n")
         f.write(f"- frame_stride: `{args.frame_stride}`\n\n")
         if terrain_paths:

@@ -174,6 +174,8 @@ def get_args():
         {"name": "--frame_stride", "type": int, "default": 2, "help": "Save one visualization frame every N policy steps."},
         {"name": "--frame_width", "type": int, "default": 1280, "help": "Recorded frame width for robustness visualization."},
         {"name": "--frame_height", "type": int, "default": 720, "help": "Recorded frame height for robustness visualization."},
+        {"name": "--terrain_width", "type": int, "default": 3840, "help": "Terrain overview figure width in pixels."},
+        {"name": "--terrain_height", "type": int, "default": 2160, "help": "Terrain overview figure height in pixels."},
         {"name": "--viz_suite", "type": str, "default": "single", "help": "Visualization suite: single, ablations, final, terrain_gallery, or all."},
         {"name": "--baseline_task", "type": str, "default": "a1", "help": "Baseline task name used by robustness visualization suites."},
         {"name": "--final_task", "type": str, "default": "a1_robust_all", "help": "Final robust task name used by robustness visualization suites."},
