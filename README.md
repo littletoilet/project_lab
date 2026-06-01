@@ -46,6 +46,25 @@
 
 </details>
 
+<details open>
+  <summary>Visual Results</summary>
+
+  - Terrain Visualtization
+
+  <div align="center">
+    <img width="48.5%" src="assets/clean_rough.png">
+    &nbsp;&nbsp;
+    <img width="48%" src="assets/hard_terrain.png">
+    <br>
+    <span style="display:inline-block; width:48.5%; text-align:center;"><p>Clean Rough Terrain</p></span>
+    &nbsp;&nbsp;
+    <span style="display:inline-block; width:48%; text-align:center;"><p>Hard Terrain</p></span>
+  </div>
+
+  - More visual results are in our [project website](https://littletoilet.github.io/project_lab/).
+</details>
+
+
 ## ⚙️ Reproduction Guide
 
 ### Environment Setup
